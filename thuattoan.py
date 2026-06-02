@@ -1,3 +1,5 @@
+import numpy as np
+
 def thuat_toan_bland(A, b, c):
     """
     Giải bài toán QHTT dạng chuẩn (Min, Ax <= b, x >= 0, b >= 0) bằng thuật toán Đơn hình.
