@@ -297,5 +297,3 @@ if __name__ == "__main__":
     bai_toan.hien_thi_dang_chuan()
     bai_toan.giai_va_xuat_ket_qua()
     bai_toan.phuong_phap_hinh_hoc()
-    
-    #Do chưa có các hàm Blande, trượt hàm mục tiêu và hai pha nên t chỉ mới chạy tới bai.toan.hien.thi_dang_chuan()
