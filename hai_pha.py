@@ -24,6 +24,7 @@ def xoay_ma_tran(bang, dong, cot):
 def chay_vong_lap_don_hinh(bang, co_so, dung_quy_tac_bland=False, lich_su_dinh=None, so_bien_goc=2, lich_su_co_so=None, lich_su_bang=None):
     so_cot = bang.shape[1] - 1
     so_dong = bang.shape[0] - 1
+    so_buoc = 0
     
     while True:
         # === CHỤP ẢNH MA TRẬN TRƯỚC KHI XOAY ===
@@ -67,6 +68,7 @@ def chay_vong_lap_don_hinh(bang, co_so, dung_quy_tac_bland=False, lich_su_dinh=N
 
         xoay_ma_tran(bang, dong_ra, cot_vao)
         co_so[dong_ra] = cot_vao
+        so_buoc += 1
         
         if lich_su_co_so is not None:
             if kiem_tra_xoay_vong(lich_su_co_so, co_so): return "xoay_vong"
@@ -83,7 +85,7 @@ def chay_vong_lap_don_hinh(bang, co_so, dung_quy_tac_bland=False, lich_su_dinh=N
         if not lich_su_dinh or lich_su_dinh[-1] != dinh_cuoi:
             lich_su_dinh.append(dinh_cuoi)
 
-    return "toi_uu"
+    return "toi_uu", so_buoc
         
 def thuat_toan_hai_pha(ma_tran_A, ve_phai_b, he_so_c):
     so_phuong_trinh, so_bien = ma_tran_A.shape
@@ -112,13 +114,13 @@ def thuat_toan_hai_pha(ma_tran_A, ve_phai_b, he_so_c):
         bang[-1] -= bang[-1, vi_tri_co_so] * bang[i]
     
     lich_su_co_so=[]
-    ket_qua_pha_1 = chay_vong_lap_don_hinh(bang, co_so, dung_quy_tac_bland=False, lich_su_dinh=duong_di_toa_do, so_bien_goc=so_bien, lich_su_co_so=lich_su_co_so, lich_su_bang=lich_su_bang)
+    ket_qua_pha_1, so_buoc1 = chay_vong_lap_don_hinh(bang, co_so, dung_quy_tac_bland=False, lich_su_dinh=duong_di_toa_do, so_bien_goc=so_bien, lich_su_co_so=lich_su_co_so, lich_su_bang=lich_su_bang)
 
     if so_bien in co_so:
         dong_chua_x0 = co_so.index(so_bien)
         if bang[dong_chua_x0, -1] > 1e-9:
             duong_di_toa_do = []
-            return None, None, "vo_nghiem", duong_di_toa_do, lich_su_bang # Trả về thêm lich_su_bang
+            return None, None, "vo_nghiem", duong_di_toa_do, so_buoc1, lich_su_bang # Trả về thêm lich_su_bang
         else:
             da_tim_thay_phan_tu_xoay = False
             for j in range(so_bien + 1 + so_phuong_trinh):
@@ -140,11 +142,11 @@ def thuat_toan_hai_pha(ma_tran_A, ve_phai_b, he_so_c):
     for i, vi_tri_co_so in enumerate(co_so):
         bang[-1] -= bang[-1, vi_tri_co_so] * bang[i]
 
-    ket_qua_pha_2 = chay_vong_lap_don_hinh(bang, co_so, dung_quy_tac_bland=False, lich_su_dinh=duong_di_toa_do, so_bien_goc=so_bien, lich_su_co_so=lich_su_co_so, lich_su_bang=lich_su_bang)
+    ket_qua_pha_2, so_buoc_2 = chay_vong_lap_don_hinh(bang, co_so, dung_quy_tac_bland=False, lich_su_dinh=duong_di_toa_do, so_bien_goc=so_bien, lich_su_co_so=lich_su_co_so, lich_su_bang=lich_su_bang)
     
     if ket_qua_pha_2 == "khong_gioi_noi":
         duong_di_toa_do=[]
-        return None, float('-inf'), "khong_gioi_noi", duong_di_toa_do, lich_su_bang
+        return None, float('-inf'), "khong_gioi_noi", duong_di_toa_do, so_buoc_2, lich_su_bang
 
     nghiem_A = np.zeros(so_bien)
     for i, vi_tri_co_so in enumerate(co_so):
@@ -178,7 +180,7 @@ def thuat_toan_hai_pha(ma_tran_A, ve_phai_b, he_so_c):
 
     nghiem_tra_ve = [np.array(d) for d in dinh_toi_uu]
     # Trả về 5 biến
-    return nghiem_tra_ve, gia_tri_toi_uu, trang_thai, duong_di_toa_do, lich_su_bang
+    return nghiem_tra_ve, gia_tri_toi_uu, trang_thai, duong_di_toa_do, 0, lich_su_bang
 
 def thuat_toan_bland(ma_tran_A, ve_phai_b, he_so_c):
     so_phuong_trinh, so_bien = ma_tran_A.shape
@@ -196,11 +198,11 @@ def thuat_toan_bland(ma_tran_A, ve_phai_b, he_so_c):
         bang[-1] -= bang[-1, vi_tri_co_so] * bang[i]
     
     lich_su_co_so=[]
-    trang_thai = chay_vong_lap_don_hinh(bang, co_so, dung_quy_tac_bland=True, lich_su_dinh=duong_di_toa_do, so_bien_goc=so_bien, lich_su_co_so=lich_su_co_so, lich_su_bang=lich_su_bang)
+    trang_thai, so_buoc_lap = chay_vong_lap_don_hinh(bang, co_so, dung_quy_tac_bland=True, lich_su_dinh=duong_di_toa_do, so_bien_goc=so_bien, lich_su_co_so=lich_su_co_so, lich_su_bang=lich_su_bang)
     
     if trang_thai == "khong_gioi_noi":
         duong_di_toa_do=[]
-        return None, float('-inf'), "khong_gioi_noi", duong_di_toa_do, lich_su_bang
+        return None, float('-inf'), "khong_gioi_noi", duong_di_toa_do, so_buoc_lap, lich_su_bang
 
     nghiem_A = np.zeros(so_bien)
     for i, vi_tri_co_so in enumerate(co_so):
@@ -233,7 +235,7 @@ def thuat_toan_bland(ma_tran_A, ve_phai_b, he_so_c):
                     trang_thai = "vo_so_nghiem"
 
     nghiem_tra_ve = [np.array(d) for d in dinh_toi_uu]
-    return nghiem_tra_ve, gia_tri_toi_uu, trang_thai, duong_di_toa_do, lich_su_bang
+    return nghiem_tra_ve, gia_tri_toi_uu, trang_thai, duong_di_toa_do, so_buoc_lap, lich_su_bang
     
 def thuat_toan_dantzig(ma_tran_A, ve_phai_b, he_so_c):
     so_phuong_trinh, so_bien = ma_tran_A.shape
@@ -251,13 +253,13 @@ def thuat_toan_dantzig(ma_tran_A, ve_phai_b, he_so_c):
         bang[-1] -= bang[-1, vi_tri_co_so] * bang[i]
     lich_su_co_so = []    
 
-    trang_thai = chay_vong_lap_don_hinh(bang, co_so, dung_quy_tac_bland=False, lich_su_dinh=duong_di_toa_do, so_bien_goc=so_bien, lich_su_co_so=lich_su_co_so, lich_su_bang=lich_su_bang)
+    trang_thai, so_buoc_lap = chay_vong_lap_don_hinh(bang, co_so, dung_quy_tac_bland=False, lich_su_dinh=duong_di_toa_do, so_bien_goc=so_bien, lich_su_co_so=lich_su_co_so, lich_su_bang=lich_su_bang)
     
     if trang_thai == "khong_gioi_noi":
         duong_di_toa_do = []
-        return None, float('-inf'), "khong_gioi_noi", duong_di_toa_do, lich_su_bang
+        return None, float('-inf'), "khong_gioi_noi", duong_di_toa_do, so_buoc_lap, lich_su_bang
     if trang_thai == "xoay_vong":
-        return None, None, "xoay_vong", [], lich_su_bang
+        return None, None, "xoay_vong", [],so_buoc_lap, lich_su_bang
 
     nghiem_A = np.zeros(so_bien)
     for i, vi_tri_co_so in enumerate(co_so):
@@ -290,4 +292,4 @@ def thuat_toan_dantzig(ma_tran_A, ve_phai_b, he_so_c):
                     trang_thai = "vo_so_nghiem"
 
     nghiem_tra_ve = [np.array(d) for d in dinh_toi_uu]
-    return nghiem_tra_ve, gia_tri_toi_uu, trang_thai, duong_di_toa_do, lich_su_bang
+    return nghiem_tra_ve, gia_tri_toi_uu, trang_thai, duong_di_toa_do,so_buoc_lap, lich_su_bang

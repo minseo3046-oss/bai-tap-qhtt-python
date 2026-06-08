@@ -193,6 +193,7 @@ class OptimizationSolverApp(QMainWindow):
         return widget
 
     # --- MÀN HÌNH 2: WORKSPACE ---
+    # --- MÀN HÌNH 2: WORKSPACE ---
     def tao_man_hinh_workspace(self):
         widget = QWidget()
         main_layout = QHBoxLayout()
@@ -236,6 +237,7 @@ class OptimizationSolverApp(QMainWindow):
 
         self.tab_nhap_lieu = QTabWidget()
         
+        # 1. Tab Nhập trực tiếp
         self.tab_nhap_tay = QWidget()
         tab1_layout = QVBoxLayout()
         self.bang_ma_tran = BangNhapLieu()
@@ -249,12 +251,17 @@ class OptimizationSolverApp(QMainWindow):
         tab1_layout.addWidget(btn_giai)
         self.tab_nhap_tay.setLayout(tab1_layout)
         
+        # 2. Tab Tải file Excel
         self.tab_nhap_file = QWidget()
         tab2_layout = QVBoxLayout()
-        lbl_file = QLabel("Chức năng tải file Excel đang được phát triển...")
-        lbl_file.setStyleSheet("color: gray;")
+        lbl_file = QLabel("Tải lên file Excel (.xlsx) theo đúng định dạng mẫu")
+        lbl_file.setStyleSheet("color: #4a5568; font-weight: bold;")
+        
         btn_upload = QPushButton("Duyệt tìm file .xlsx")
-        btn_upload.setFixedSize(150, 40)
+        btn_upload.setFixedSize(200, 45)
+        btn_upload.setStyleSheet("background-color: #ed8936; color: white; font-weight: bold; font-size: 14px; border-radius: 5px;")
+        btn_upload.clicked.connect(self.tai_file_excel) # Kích hoạt chức năng đọc file Excel
+        
         tab2_layout.addWidget(lbl_file, alignment=Qt.AlignmentFlag.AlignCenter)
         tab2_layout.addWidget(btn_upload, alignment=Qt.AlignmentFlag.AlignCenter)
         self.tab_nhap_file.setLayout(tab2_layout)
@@ -278,6 +285,7 @@ class OptimizationSolverApp(QMainWindow):
         
         self.tab_ket_qua = QTabWidget()
         
+        # Tab Báo cáo Tổng quan
         self.tab_tong_quan = QWidget()
         tq_layout = QVBoxLayout()
         self.txt_ket_qua = QTextEdit()
@@ -286,24 +294,11 @@ class OptimizationSolverApp(QMainWindow):
         tq_layout.addWidget(self.txt_ket_qua)
         self.tab_tong_quan.setLayout(tq_layout)
         
-        # --- TAB 2: LỘ TRÌNH ĐƠN HÌNH (MA TRẬN GAUSS-JORDAN) ---
+        # Tab Lộ trình Đơn hình
         self.tab_lo_trinh = QWidget()
         lt_layout = QVBoxLayout()
-        lbl_file = QLabel("Tải lên file Excel (.xlsx) theo đúng định dạng mẫu")
-        lbl_file.setStyleSheet("color: #4a5568; font-weight: bold;")
-        
-        btn_upload = QPushButton("Duyệt tìm file .xlsx")
-        btn_upload.setFixedSize(200, 45)
-        btn_upload.setStyleSheet("background-color: #ed8936; color: white; font-weight: bold; font-size: 14px; border-radius: 5px;")
-        
-        # ---> THÊM DÒNG NÀY ĐỂ KÍCH HOẠT NÚT BẤM <---
-        btn_upload.clicked.connect(self.tai_file_excel)
-        
-        tab2_layout.addWidget(lbl_file, alignment=Qt.AlignmentFlag.AlignCenter)
-        tab2_layout.addWidget(btn_upload, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.tab_nhap_file.setLayout(tab2_layout)
 
-        # 1. Thanh điều hướng (Toolbar)
+        # Thanh điều hướng (Toolbar)
         nav_layout = QHBoxLayout()
         self.btn_prev = QPushButton("◀ Bước trước")
         self.btn_prev.clicked.connect(self.xem_buoc_truoc)
@@ -322,9 +317,9 @@ class OptimizationSolverApp(QMainWindow):
         nav_layout.addWidget(self.lbl_buoc, stretch=1)
         nav_layout.addWidget(self.btn_next)
         
-        # 2. Bảng hiển thị ma trận
+        # Bảng hiển thị ma trận đơn hình
         self.bang_don_hinh = QTableWidget()
-        self.bang_don_hinh.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers) # Khóa, chỉ cho phép đọc
+        self.bang_don_hinh.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.bang_don_hinh.setStyleSheet("""
             QTableWidget { background-color: #ffffff; gridline-color: #cbd5e0; font-size: 14px; }
             QHeaderView::section { background-color: #2d3748; color: white; font-weight: bold; padding: 5px; }
@@ -335,10 +330,9 @@ class OptimizationSolverApp(QMainWindow):
         lt_layout.addWidget(self.bang_don_hinh)
         self.tab_lo_trinh.setLayout(lt_layout)
 
-        # Tab 3: Không Gian Hình Học
+        # Tab Đồ thị Hình học
         self.tab_do_thi = QWidget()
         dt_layout = QVBoxLayout()
-        # Tạo khung canvas trắng của matplotlib
         self.fig = Figure(figsize=(6, 5), dpi=100)
         self.canvas = FigureCanvas(self.fig)
         dt_layout.addWidget(self.canvas)
@@ -354,8 +348,6 @@ class OptimizationSolverApp(QMainWindow):
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(left_panel)
         splitter.addWidget(right_panel)
-        
-        # Đặt tỷ lệ kích thước ban đầu (chia đôi màn hình)
         splitter.setSizes([650, 650])
         
         main_layout.addWidget(splitter)
@@ -462,12 +454,26 @@ class OptimizationSolverApp(QMainWindow):
         # Cập nhật Label chỉ số vòng lặp
         self.lbl_buoc.setText(f"Ma trận vòng lặp thứ: {self.buoc_hien_tai + 1} / {len(self.lich_su_bang_ui)}")
         
-        # Nạp Tiêu đề Cột (X1, X2, ..., Vế phải)
-        cot_labels = [f"X{j+1}" for j in range(so_cot - 1)] + ["Vế phải (b)"]
+        # --- THAY THẾ ĐOẠN NẠP TIÊU ĐỀ CŨ BẰNG ĐOẠN NÀY ---
+        
+        # 1. Logic Tiêu đề Cột (Tự động nhận diện X0 của Hai pha)
+        so_bien_goc = self.spin_bien.value() # Số biến gốc người dùng nhập
+        if so_cot - 1 > so_bien_goc: 
+            # Nếu số cột > số biến gốc, chứng tỏ có cột biến giả X0
+            cot_labels = ["X0"] + [f"X{j+1}" for j in range(so_cot - 1)] + ["Vế phải (b)"]
+        else:
+            cot_labels = [f"X{j+1}" for j in range(so_cot - 1)] + ["Vế phải (b)"]
+            
         self.bang_don_hinh.setHorizontalHeaderLabels(cot_labels)
         
-        # Nạp Tiêu đề Dòng (Biến cơ sở, Hàm Z)
-        dong_labels = [f"Cơ sở (X{c+1})" for c in co_so] + ["Hàm Z (Δ)"]
+        # 2. Logic Tiêu đề Dòng (Xử lý tên biến cơ sở linh hoạt hơn)
+        dong_labels = []
+        for c in co_so:
+            # Nếu c == 0 trong pha 1, nó chính là biến giả X0
+            if c == 0: dong_labels.append("Cơ sở (X0)")
+            else: dong_labels.append(f"Cơ sở (X{c})")
+        dong_labels.append("Hàm Z (Δ)")
+        
         self.bang_don_hinh.setVerticalHeaderLabels(dong_labels)
         
         # Đổ từng con số vào bảng
@@ -566,35 +572,38 @@ class OptimizationSolverApp(QMainWindow):
             QMessageBox.critical(self, "Lỗi hệ thống", f"Đã xảy ra lỗi không xác định: {str(e)}")
 
     def tai_file_excel(self):
-        # Mở hộp thoại chọn file
+        # Cập nhật cho phép chọn cả file Excel lẫn file CSV
         duong_dan_file, _ = QFileDialog.getOpenFileName(
-            self, "Chọn file dữ liệu Excel", "", "Excel Files (*.xlsx *.xls)"
+            self, "Chọn file dữ liệu", "", "Data Files (*.xlsx *.xls *.csv)"
         )
         
         if not duong_dan_file:
-            return # Người dùng bấm Cancel không chọn file nữa
+            return 
             
         try:
-            # Đọc file Excel không lấy tiêu đề mặc định (header=None)
-            df = pd.read_excel(duong_dan_file, header=None)
+            # 1. ĐỌC FILE VÀ LÀM SẠCH DỮ LIỆU TỰ ĐỘNG
+            if duong_dan_file.endswith('.csv'):
+                df = pd.read_csv(duong_dan_file, header=None)
+            else:
+                df = pd.read_excel(duong_dan_file, header=None)
+                
+            # Xóa sạch các dòng và cột rỗng (chống lỗi phantom rows trong Excel)
+            df = df.dropna(how='all').dropna(axis=1, how='all').reset_index(drop=True)
             
-            # --- 1. BÓC TÁCH DỮ LIỆU ---
+            # 2. BÓC TÁCH DỮ LIỆU
             loai_muc_tieu = str(df.iloc[0, 1]).strip().lower()
             
-            # Đọc hệ số f(x) ở dòng 1 (bỏ cột đầu tiên, lấy tới khi gặp ô trống/NaN)
             he_so_f = []
             for val in df.iloc[1, 1:]:
                 if pd.notna(val) and str(val).strip() != "":
                     he_so_f.append(float(val))
             so_bien = len(he_so_f)
             
-            # Đọc dấu của biến ở dòng cuối cùng
             dong_cuoi_idx = len(df) - 1
             dau_cua_bien = []
             for val in df.iloc[dong_cuoi_idx, 1:so_bien+1]:
                 dau_cua_bien.append(str(val).strip())
                 
-            # Đọc các ràng buộc (từ dòng 2 đến sát dòng cuối)
             cac_rang_buoc = []
             for i in range(2, dong_cuoi_idx):
                 dong_data = df.iloc[i].tolist()
@@ -603,16 +612,20 @@ class OptimizationSolverApp(QMainWindow):
                 gia_tri_vp = float(dong_data[1+so_bien+1])
                 cac_rang_buoc.append((he_so_vt, dau_rb, gia_tri_vp))
                 
-            # --- 2. BƠM DỮ LIỆU VÀO BACKEND ĐỂ GIẢI ---
+            # Ép giao diện đồng bộ với kích thước thực tế của file Excel
+            self.spin_bien.setValue(so_bien)
+            self.spin_rb.setValue(len(cac_rang_buoc))
+
+            # 3. BƠM DỮ LIỆU VÀO BACKEND ĐỂ GIẢI
             bai_toan = BaiToanQuyHoachTuyenTinh()
             bai_toan.nap_du_lieu_tu_bien_ngoai(loai_muc_tieu, so_bien, he_so_f, cac_rang_buoc, dau_cua_bien)
             bai_toan.buoc3_chuan_hoa_bai_toan()
             
-            # --- 3. HIỂN THỊ KẾT QUẢ LÊN GIAO DIỆN ---
+            # 4. HIỂN THỊ KẾT QUẢ LÊN GIAO DIỆN
             self.txt_ket_qua.clear()
             self.tab_ket_qua.setCurrentIndex(0)
             print(f"📂 Đã đọc thành công file: {duong_dan_file.split('/')[-1]}")
-            print(f"📌 Bài toán kích thước lớn: {so_bien} biến, {len(cac_rang_buoc)} ràng buộc")
+            print(f"📌 Bài toán kích thước: {so_bien} biến, {len(cac_rang_buoc)} ràng buộc")
             print("🚀 HỆ THỐNG ĐANG XỬ LÝ...\n" + "="*50)
             bai_toan.giai_va_xuat_ket_qua()
             
@@ -630,16 +643,15 @@ class OptimizationSolverApp(QMainWindow):
                 self.tab_ket_qua.setTabEnabled(2, True)
                 self.fig.clear()
                 ax_do_thi = self.fig.add_subplot(111)
-                from truot_ham_muc_tieu import phuong_phap_truot_ham_muc_tieu
                 phuong_phap_truot_ham_muc_tieu(bai_toan, bai_toan.duong_bland, bai_toan.duong_dantzig, ax=ax_do_thi)
                 self.canvas.draw()
             else:
                 self.tab_ket_qua.setTabEnabled(2, False)
 
-            QMessageBox.information(self, "Thành công", "Đã nạp và giải xong dữ liệu từ file Excel!")
+            QMessageBox.information(self, "Thành công", "Đã nạp và giải xong dữ liệu từ file!")
 
         except Exception as e:
-            QMessageBox.critical(self, "Lỗi đọc file Excel", f"File không đúng định dạng. Chi tiết lỗi:\n{str(e)}")
+            QMessageBox.critical(self, "Lỗi đọc file", f"File không đúng định dạng. Chi tiết lỗi:\n{str(e)}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -4,7 +4,6 @@ import numpy as np
 from hai_pha import thuat_toan_bland, thuat_toan_hai_pha, thuat_toan_dantzig
 from truot_ham_muc_tieu import phuong_phap_truot_ham_muc_tieu
 
-
 class BaiToanQuyHoachTuyenTinh:
 
     def __init__(self):
@@ -256,38 +255,48 @@ class BaiToanQuyHoachTuyenTinh:
                 
         return nghiem_goc
     def giai_va_xuat_ket_qua(self):
-        # Kiểm tra điều kiện để quyết định phương pháp
         co_b_am = np.any(self.b_chuan < 0)
-        tat_ca_b_duong = np.all(self.b_chuan > 0)
 
-        # Hàm bọc an toàn: Nếu là None thì biến thành [] để không bị lỗi khi dùng vòng lặp for
-        def get_lo_trinh_safe(ket_qua):
-            return ket_qua[3] if ket_qua[3] is not None else []
-
-        # Trường hợp 1: Bài toán cần dùng Hai pha
+        # 1. Trường hợp dùng Hai pha
         if co_b_am:
-            ket_qua = self.giai_voi_thuat_toan_hai_pha()
-            self.xu_ly_va_in_ket_qua(ket_qua)
-            lo_trinh = get_lo_trinh_safe(ket_qua)
-            self.duong_bland = [self.hoan_nguyen_nghiem_goc(pt) for pt in lo_trinh]
+            # Nhận đủ 6 giá trị: nghiem, gia_tri, trang_thai, lo_trinh, steps, lich_su
+            nghiem, gia_tri, trang_thai, lo_trinh, steps, bang_ls = self.giai_voi_thuat_toan_hai_pha()
             
-        # Trường hợp 2: Bài toán b >= 0, dùng Bland
+            # Lưu lịch sử bảng để GUI vẽ
+            self.lich_su_bang_hien_tai = bang_ls 
+            
+            self.xu_ly_va_in_ket_qua((nghiem, gia_tri, trang_thai, lo_trinh, steps, bang_ls))
+            print(f"\nTổng số bước lặp (Pha 1 + Pha 2): {steps}")
+            
+            if lo_trinh is not None:
+                self.duong_bland = [self.hoan_nguyen_nghiem_goc(pt) for pt in lo_trinh]
+                
+        # 2. Trường hợp b_i >= 0
         else:
-            ket_qua = self.giai_voi_thuat_toan_bland()
-            self.xu_ly_va_in_ket_qua(ket_qua)
-            lo_trinh = get_lo_trinh_safe(ket_qua)
-            self.duong_bland = [self.hoan_nguyen_nghiem_goc(pt) for pt in lo_trinh]
+            # Chạy Bland
+            print("\n--- Đang thực hiện thuật toán Bland ---")
+            # Nhận đủ 6 giá trị
+            nghiem_b, z_b, state_b, path_b, steps_b, bang_ls_b = self.giai_voi_thuat_toan_bland()
+            
+            self.lich_su_bang_hien_tai = bang_ls_b
+            self.xu_ly_va_in_ket_qua((nghiem_b, z_b, state_b, path_b, steps_b, bang_ls_b))
+            print(f"\nTổng số bước lặp Bland: {steps_b}")
+            
+            if path_b is not None:
+                self.duong_bland = [self.hoan_nguyen_nghiem_goc(pt) for pt in path_b]
 
-            # Chỉ đối chiếu Dantzig khi tất cả b > 0
-            if tat_ca_b_duong:
-                print("\n--- Đang thực hiện đối chiếu bằng thuật toán Dantzig ---")
-                ket_qua = self.giai_voi_thuat_toan_dantzig()
-                self.xu_ly_va_in_ket_qua(ket_qua)
-                lo_trinh = get_lo_trinh_safe(ket_qua)
-                self.duong_dantzig = [self.hoan_nguyen_nghiem_goc(pt) for pt in lo_trinh]
+            # Chạy Dantzig
+            print("\n--- Đang thực hiện thuật toán Dantzig để đối chiếu ---")
+            nghiem_d, z_d, state_d, path_d, steps_d, bang_ls_d = self.giai_voi_thuat_toan_dantzig()
+            
+            self.xu_ly_va_in_ket_qua((nghiem_d, z_d, state_d, path_d, steps_d, bang_ls_d))
+            
+            if state_d != "xoay_vong":
+                print(f"\nTổng số bước lặp Dantzig: {steps_d}")
+
         # --- RẼ NHÁNH ĐỂ IN KẾT QUẢ THEO TỪNG TRƯỜNG HỢP TOÁN HỌC ---
     def xu_ly_va_in_ket_qua(self, ket_qua):
-        nghiem_chuan, f_optimal, trang_thai, lo_trinh, lich_su_bang = ket_qua
+        nghiem_chuan, f_optimal, trang_thai, lo_trinh, steps, lich_su_bang = ket_qua
         self.lich_su_bang_hien_tai = lich_su_bang # Lưu giữ liệu vào class để Giao diện GUI gọi ra dùng
         if nghiem_chuan is not None and len(nghiem_chuan) > 0:
             so_bien = len(nghiem_chuan[0])

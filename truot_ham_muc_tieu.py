@@ -120,49 +120,47 @@ def phuong_phap_truot_ham_muc_tieu(obj_bai_toan, duong_bland=None, duong_dantzig
             label="Miền nghiệm D",
         )
 
-    # =====================================================================
-    # 7. MÔ PHỎNG SỰ TRƯỢT CỦA HÀM MỤC TIÊU (CHỈ 2 ĐƯỜNG VÔ CÙNG)
-    # =====================================================================
+    # --- 7. MÔ PHỎNG SỰ TRƯỢT CỦA HÀM MỤC TIÊU ---
     c1, c2 = obj_bai_toan.he_so_f_goc[0], obj_bai_toan.he_so_f_goc[1]
-    loai = obj_bai_toan.loai_muc_tieu.lower()
     norm = np.sqrt(c1**2 + c2**2)
+    loai = obj_bai_toan.loai_muc_tieu.lower()
 
     if norm > 0:
-        # Tính khoảng cách trượt lớn để đảm bảo đường nằm ngoài miền nghiệm
-        tam_quet = max(x_lim[1] - x_lim[0], y_lim[1] - y_lim[0]) * 2
-        delta_z = norm * tam_quet
-        z_trung_tam = c1 * ((x_lim[0]+x_lim[1])/2) + c2 * ((y_lim[0]+y_lim[1])/2)
+        mid_x = (x_lim[0] + x_lim[1]) / 2
+        mid_y = (y_lim[0] + y_lim[1]) / 2
+        offset = max(x_lim[1]-x_lim[0], y_lim[1]-y_lim[0]) * 0.2
+        z_center = c1 * mid_x + c2 * mid_y
         
-        z_am = z_trung_tam - delta_z
-        z_duong = z_trung_tam + delta_z
+        # ĐỊNH NGHĨA TRƯỚC BIẾN ĐỂ TRÁNH LỖI UNBOUNDLOCAL
+        z_start = z_center - offset * norm
+        z_end = z_center + offset * norm
+        
+        # Nếu là min thì trượt theo hướng ngược lại
+        if loai == "min":
+            z_start, z_end = z_end, z_start
 
-        def ve_duong_z_don_gian(z_val, alpha_val, is_vector):
-            x_draw = np.linspace(x_lim[0], x_lim[1], 500)
-            
-            # Vẽ đường thẳng nét đứt mảnh, làm mờ bằng alpha_val
+        def draw_z_line(z_val, alpha, is_final):
             if abs(c2) > EPS:
+                x_draw = np.array([x_lim[0], x_lim[1]])
                 y_draw = (z_val - c1 * x_draw) / c2
-                ax.plot(x_draw, y_draw, linestyle="--", color="purple", alpha=alpha_val, linewidth=1.2)
-                px, py = (x_lim[0] + x_lim[1]) / 2, (z_val - c1 * ((x_lim[0] + x_lim[1]) / 2)) / c2
+                ax.plot(x_draw, y_draw, color="purple", linestyle="--", alpha=alpha, linewidth=2, zorder=5)
+                px, py = mid_x, (z_val - c1 * mid_x) / c2
             else:
                 px = z_val / c1
-                ax.axvline(px, linestyle="--", color="purple", alpha=alpha_val, linewidth=1.2)
-                py = (y_lim[0] + y_lim[1]) / 2
+                ax.axvline(px, color="purple", linestyle="--", alpha=alpha, linewidth=2, zorder=5)
+                py = mid_y
             
-            # Vẽ vector pháp tuyến với độ mờ phù hợp
-            if is_vector:
-                scale = (x_lim[1] - x_lim[0]) * 0.1
+            if is_final:
                 huong = 1 if loai == "max" else -1
-                vx = (c1 / norm) * scale * huong
-                vy = (c2 / norm) * scale * huong
-                
-                # Mũi tên làm mờ vừa phải để nổi bật hơn đường thẳng
-                ax.arrow(px, py, vx, vy, head_width=scale*0.15, head_length=scale*0.15, 
-                         fc='purple', ec='purple', alpha=0.6, length_includes_head=True, zorder=20)
+                vec_x = (c1/norm) * (x_lim[1]-x_lim[0]) * 0.05 * huong
+                vec_y = (c2/norm) * (y_lim[1]-y_lim[0]) * 0.05 * huong
+                ax.arrow(px, py, vec_x, vec_y, head_width=0.3, head_length=0.3, 
+                         fc='purple', ec='purple', alpha=0.9, zorder=20)
 
-        # Vẽ 2 đường: Đường "vào" mờ hơn (0.3), Đường "ra" rõ hơn (0.6) kèm vector
-        ve_duong_z_don_gian(z_am, 0.3, is_vector=False)   
-        ve_duong_z_don_gian(z_duong, 0.6, is_vector=True)
+        # Vẽ 2 đường mô phỏng sự trượt
+        draw_z_line(z_start, 0.2, False)
+        draw_z_line(z_end, 0.4, True)
+        
     # 8. BIỆN LUẬN NGHIỆM 
     loai = obj_bai_toan.loai_muc_tieu.lower()
 
